@@ -53,10 +53,6 @@ class AudioDataset(Dataset):
         elif waveform.shape[1] > waveform_length:
             waveform = waveform[ :, :waveform_length]
         return waveform
-# aD = AudioDataset(path + '/TrainingDatalist.csv')
-# print(len(aD))
-# for i in range(len(aD)):
-#     print(f"{aD[i][0].shape}, {aD[i][1]}")
 class CNNModel(nn.Module):
     def __init__(self, num_classes=5):
         super(CNNModel, self).__init__()
@@ -99,24 +95,29 @@ def AudioDataloader(csv_file, batch_size, shuffle=True):
     dataset = AudioDataset(csv_file)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
     return dataloader
-def train_model(model, dataloaders, loss_fn, optimizer, num_epochs):
-    for epoch in range (num_epochs):
-        total_correct = 0
-        for x_batch, y_batch in dataloaders:
-            optimizer.zero_grad()
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
-            y_pred = model(x_batch)
-            loss = loss_fn(y_pred, y_batch)
-            loss.backward()
-            optimizer.step()
-            _, preds = torch.max(y_pred, dim=1)
-            total_correct += torch.sum(preds == y_batch).item()
-        print(f"Epoch: {epoch + 1}, Loss: {loss.item():.4f}, Accuracy: {total_correct / len(aD):.4f}")
-model = CNNModel().to(device)
-data_loader = AudioDataloader(path + '/TrainingDatalist.csv', batch_size)
-loss_fn = nn.CrossEntropyLoss()
-optimiser = torch.optim.SGD(model.parameters(), lr=0.001)
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-train_model(model, data_loader, loss_fn, optimiser, num_epochs)
-torch.save(model.state_dict(), f"{model_name}.pth")
+def predict(model, input, target, class_mapping):
+    model.eval()
+    with torch.no_grad():
+        predictions = model(input)
+        # Tensor (1, 10) -> [ [0.1, 0.01, ..., 0.6] ]
+        predicted_index = predictions[0].argmax(0)
+        predicted = class_mapping[predicted_index]
+        expected = class_mapping[target]
+    return predicted, expected
+class_mapping = [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+]
+pred_model = CNNModel().to(device)
+pred_model.load_state_dict(torch.load(f"{model_name}.pth"))
+pred_model.eval()
+print(pred_model)
+aD = AudioDataset(path + '/TrainingDatalist.csv')
+for i in range(len(aD)):
+    input = aD[i][0].unsqueeze(0).to(device)
+    target = aD[i][1]
+    predicted, expected = predict(pred_model, input, target, class_mapping)
+    print(f"Predicted: '{predicted}', Expected: '{expected}'")
