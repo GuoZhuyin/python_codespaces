@@ -3,6 +3,7 @@ import torch
 import os
 import torchaudio
 import torch.nn as nn
+from torchvision import models, transforms
 from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
@@ -10,7 +11,7 @@ import numpy as np
 sample_rate = 44100
 model_name = 'audioCNNModel'
 path = './pathologicalVoice/TrainingDataset'
-batch_size = 16
+batch_size = 256
 num_epochs = 100
 # train_data = pd.read_csv(path + '/TrainingDatalist.csv')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -42,9 +43,9 @@ class AudioDataset(Dataset):
         # waveform = torchaudio.functional.compute_deltas(waveform)
         waveform = self.ProcessAudio(waveform).to(device)
         # waveform = self.transformation(waveform)
-        mel_specgram = torchaudio.transforms.MelSpectrogram(sample_rate=sample_rate, n_fft=n_fft, hop_length=hop_length, n_mels=64).to(device)
+        mel_specgram = torchaudio.transforms.MelSpectrogram(sample_rate=sample_rate, n_fft=n_fft, hop_length=hop_length, n_mels=33).to(device)
         waveform = mel_specgram(waveform)
-        return waveform, label
+        return waveform.reshape(3 ,-1, 126), label
     
     def ProcessAudio(self, waveform):
         waveform_length = self.sample_rate
@@ -111,7 +112,8 @@ class_mapping = [
     "4",
     "5"
 ]
-pred_model = CNNModel().to(device)
+# pred_model = CNNModel().to(device)
+pred_model = models.efficientnet_b0(weights=None, num_classes=5)
 pred_model.load_state_dict(torch.load(f"{model_name}.pth"))
 pred_model.eval()
 print(pred_model)
