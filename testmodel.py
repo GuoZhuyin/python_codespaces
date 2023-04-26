@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 sample_rate = 44100
-model_name = 'audioCNNModel'
+model_name = 'audioCNNModel500'
 path = './pathologicalVoice/TrainingDataset'
 batch_size = 256
 num_epochs = 100
@@ -116,7 +116,7 @@ class_mapping = [
 pred_model = models.efficientnet_b0(weights=None, num_classes=5)
 pred_model.load_state_dict(torch.load(f"{model_name}.pth"))
 pred_model.eval()
-print(pred_model)
+# print(pred_model)
 aD = AudioDataset(path + '/TrainingDatalist.csv')
 for i in range(len(aD)):
     input = aD[i][0].unsqueeze(0).to(device)
